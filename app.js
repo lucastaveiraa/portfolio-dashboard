@@ -313,38 +313,17 @@ function construirHistorico(mapa) {
    COTAÇÕES
    ============================================================ */
 
-async function buscarCotacaoYahoo(tickers) {
-  const resultados = {};
-  // Tenta um ticker de cada vez para evitar rate limit
-  for (const tk of tickers) {
-    try {
-      const url  = `https://query1.finance.yahoo.com/v8/finance/chart/${tk}.SA?interval=1d&range=1d`;
-      const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
-      if (!resp.ok) continue;
-      const json = await resp.json();
-      const meta = json?.chart?.result?.[0]?.meta;
-      if (meta?.regularMarketPrice) {
-        resultados[tk] = {
-          preco:   meta.regularMarketPrice,
-          varDia:  meta.regularMarketChangePercent ?? 0,
-          fonte: 'Yahoo',
-        };
-      }
-    } catch { /* ignora e usa fallback */ }
-  }
-  return resultados;
-}
+const BRAPI_TOKEN = '7Kr8p6ZVSuUj7zmvSm2Z7a';
 
 async function buscarCotacaoBrapi(tickers) {
   const resultados = {};
-  // Brapi aceita lista separada por vírgula
   const chunks = [];
   for (let i = 0; i < tickers.length; i += 10) chunks.push(tickers.slice(i, i + 10));
 
   for (const chunk of chunks) {
     try {
       const lista = chunk.join(',');
-      const url   = `https://brapi.dev/api/quote/${lista}?fundamental=false`;
+      const url   = `https://brapi.dev/api/quote/${lista}?fundamental=false&token=${BRAPI_TOKEN}`;
       const resp  = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (!resp.ok) continue;
       const json = await resp.json();
@@ -370,15 +349,7 @@ async function atualizarCotacoes() {
   mostrarLoading(true);
 
   try {
-    // Brapi como fonte primária (Yahoo bloqueado por CORS no browser)
-    let cotacoes = await buscarCotacaoBrapi(tickers);
-
-    // Fallback Yahoo para os que não vieram do Brapi
-    const faltantes = tickers.filter(t => !cotacoes[t]);
-    if (faltantes.length) {
-      const yahoo = await buscarCotacaoYahoo(faltantes);
-      Object.assign(cotacoes, yahoo);
-    }
+    const cotacoes = await buscarCotacaoBrapi(tickers);
 
     estado.cotacoes = cotacoes;
 
