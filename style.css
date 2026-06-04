@@ -1,0 +1,395 @@
+/* ============================================================
+   RESET & VARIÁVEIS
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f0f0f;
+  --bg2: #161616;
+  --bg3: #1e1e1e;
+  --border: #2a2a2a;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --accent: #3b82f6;
+  --accent2: #1d4ed8;
+  --pos: #22c55e;
+  --neg: #ef4444;
+  --gold: #f59e0b;
+  --radius: 10px;
+  --shadow: 0 2px 12px rgba(0,0,0,.45);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   TELA DE LOGIN
+   ============================================================ */
+#tela-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 0%, #1e3a5f22 0%, transparent 70%), var(--bg);
+}
+
+.login-container {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.login-logo {
+  font-size: 48px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.login-container h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  margin-bottom: 4px;
+}
+
+.login-sub {
+  color: var(--text2);
+  font-size: 13px;
+  margin-bottom: 32px;
+}
+
+#form-login input[type="password"] {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  transition: border-color .2s;
+  margin-bottom: 8px;
+}
+
+#form-login input[type="password"]:focus { border-color: var(--accent); }
+
+.login-erro {
+  color: var(--neg);
+  font-size: 12px;
+  min-height: 18px;
+  margin-bottom: 8px;
+}
+
+#form-login button {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+
+#form-login button:hover { background: var(--accent2); }
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.header-left h1 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.timestamp {
+  display: block;
+  color: var(--text2);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.header-right {
+  display: flex;
+  gap: 8px;
+}
+
+.header-right button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+
+.header-right button:hover { background: var(--border); }
+
+#btn-atualizar {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#btn-atualizar:hover { background: #1e3a5f; }
+
+/* ============================================================
+   MAIN LAYOUT
+   ============================================================ */
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ============================================================
+   CARDS DE RESUMO
+   ============================================================ */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: var(--shadow);
+  transition: border-color .2s;
+}
+
+.card:hover { border-color: #3a3a3a; }
+
+.card-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--text2);
+  font-weight: 600;
+}
+
+.card-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.card-value.positivo { color: var(--pos); }
+.card-value.negativo { color: var(--neg); }
+.card-value.destaque { color: var(--accent); }
+
+/* ============================================================
+   SEÇÃO GENÉRICA
+   ============================================================ */
+.section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.section h2, .grafico-card h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: 16px;
+}
+
+/* ============================================================
+   TABELA DE POSIÇÕES
+   ============================================================ */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 700px;
+}
+
+thead th {
+  text-align: right;
+  padding: 10px 12px;
+  color: var(--text2);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+thead th:first-child { text-align: left; }
+
+tbody tr {
+  border-bottom: 1px solid #1f1f1f;
+  transition: background .15s;
+}
+
+tbody tr:hover { background: #1c1c1c; }
+tbody tr:last-child { border-bottom: none; }
+
+tbody td {
+  padding: 11px 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+tbody td:first-child { text-align: left; }
+
+.ticker-cell {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.tipo-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  background: var(--bg3);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.tipo-badge.etf { color: var(--accent); border-color: var(--accent); background: #1e3a5f22; }
+.tipo-badge.bdr { color: var(--gold); border-color: var(--gold); background: #3d2e0022; }
+.tipo-badge.acao { color: var(--pos); border-color: var(--pos); background: #14532d22; }
+
+.positivo { color: var(--pos) !important; }
+.negativo { color: var(--neg) !important; }
+
+.loading {
+  text-align: center !important;
+  color: var(--text2);
+  padding: 32px !important;
+  font-style: italic;
+}
+
+/* ============================================================
+   GRÁFICOS
+   ============================================================ */
+.graficos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.grafico-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.grafico-card.full-width { grid-column: 1 / -1; }
+
+canvas {
+  max-height: 300px;
+}
+
+/* ============================================================
+   LOADING OVERLAY
+   ============================================================ */
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   MENSAGEM DE ERRO/INFO
+   ============================================================ */
+.aviso {
+  background: #1e3a5f33;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+.hidden { display: none !important; }
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+@media (max-width: 768px) {
+  main { padding: 16px; gap: 16px; }
+  header { padding: 12px 16px; }
+  .header-left h1 { font-size: 15px; }
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .card-value { font-size: 18px; }
+  .graficos { grid-template-columns: 1fr; }
+  .header-right button { padding: 7px 12px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .login-container { padding: 32px 24px; }
+}

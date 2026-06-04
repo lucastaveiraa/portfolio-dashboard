@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Dashboard — Lucas Taveira</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ============================================================
+     TELA DE LOGIN
+     ============================================================ -->
+<div id="tela-login">
+  <div class="login-container">
+    <div class="login-logo">📊</div>
+    <h1>Portfolio</h1>
+    <p class="login-sub">Lucas Taveira</p>
+    <form id="form-login" onsubmit="fazerLogin(event)">
+      <input type="password" id="campo-senha" placeholder="Senha" autocomplete="current-password" required>
+      <p class="login-erro" id="login-erro"></p>
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     DASHBOARD
+     ============================================================ -->
+<div id="dashboard" class="hidden">
+
+  <!-- CABEÇALHO -->
+  <header>
+    <div class="header-left">
+      <h1>Portfolio Dashboard</h1>
+      <span class="timestamp" id="ultima-atualizacao">cotações não carregadas</span>
+    </div>
+    <div class="header-right">
+      <button id="btn-atualizar" onclick="atualizarCotacoes()">↻ Atualizar Cotações</button>
+      <button id="btn-logout" onclick="fazerLogout()">Sair</button>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main>
+
+    <!-- CARDS DE RESUMO -->
+    <section class="cards">
+      <div class="card">
+        <span class="card-label">Patrimônio</span>
+        <span class="card-value" id="card-patrimonio">—</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Custo Total</span>
+        <span class="card-value" id="card-custo">—</span>
+      </div>
+      <div class="card">
+        <span class="card-label">P&amp;L Total</span>
+        <span class="card-value" id="card-pl">—</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Proventos</span>
+        <span class="card-value destaque" id="card-proventos">—</span>
+      </div>
+      <div class="card">
+        <span class="card-label">XIRR a.a.</span>
+        <span class="card-value" id="card-xirr">—</span>
+      </div>
+    </section>
+
+    <!-- TABELA DE POSIÇÕES -->
+    <section class="section">
+      <h2>Posições</h2>
+      <div class="table-wrapper">
+        <table id="tabela-posicoes">
+          <thead>
+            <tr>
+              <th style="text-align:left">Ticker</th>
+              <th style="text-align:left">Tipo</th>
+              <th>Qt</th>
+              <th>PM (R$)</th>
+              <th>Preço Atual</th>
+              <th>Var. Dia</th>
+              <th>Valor Mercado</th>
+              <th>P&amp;L R$</th>
+              <th>P&amp;L %</th>
+            </tr>
+          </thead>
+          <tbody id="corpo-tabela">
+            <tr><td colspan="9" class="loading">Carregando dados do extrato…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- GRÁFICOS — linha 1 -->
+    <div class="graficos">
+      <div class="grafico-card">
+        <h2>Composição: Custo vs Mercado</h2>
+        <canvas id="grafico-composicao"></canvas>
+      </div>
+      <div class="grafico-card">
+        <h2>Proventos por Ano</h2>
+        <canvas id="grafico-proventos"></canvas>
+      </div>
+    </div>
+
+    <!-- GRÁFICOS — linha 2 -->
+    <div class="graficos">
+      <div class="grafico-card" style="grid-column:1/-1">
+        <h2>Evolução do Capital Investido</h2>
+        <canvas id="grafico-evolucao"></canvas>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" class="hidden">
+  <div class="spinner"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
