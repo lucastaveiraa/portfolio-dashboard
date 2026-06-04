@@ -182,6 +182,15 @@ function processarMovimentacoes(rows) {
   const cab = rows[idxCab];
   const c   = detectarColunas(cab);
 
+  // Debug: primeiras 5 linhas de dados
+  console.log('[DEBUG] Cabeçalho detectado (linha', idxCab, '):', cab);
+  console.log('[DEBUG] Índices de colunas:', c);
+  const linhasDebug = rows.slice(idxCab + 1, idxCab + 6).filter(r => r && !r.every(v => String(v).trim() === ''));
+  linhasDebug.forEach((row, i) => {
+    console.log(`[DEBUG] Linha ${i + 1} raw:`, row);
+    console.log(`[DEBUG] Linha ${i + 1} parsed → qt=${parsearNumero(row[c.quantidade])} preco=${parsearNumero(row[c.precoUnit])} tipo="${semAcento(String(row[c.tipo] ?? ''))}" entSai="${String(row[c.entradaSaida] ?? '').trim().toLowerCase()}"`);
+  });
+
   const posicoes = {};
   const fluxosGlobais = [];  // para XIRR global
   const historicoMap  = {};  // "yyyy-MM" → capitalInvestido acumulado
@@ -204,7 +213,7 @@ function processarMovimentacoes(rows) {
 
     // Ignorar movimentações sem relevância
     const ignorar = TIPO_IGNORAR.some(t => tipo.includes(semAcento(t)));
-    if (ignorar && tipo !== TIPO_COMPRA_VENDA) continue;
+    if (ignorar && tipo !== semAcento(TIPO_COMPRA_VENDA)) continue;
 
     if (!posicoes[ticker]) {
       posicoes[ticker] = {
@@ -361,20 +370,14 @@ async function atualizarCotacoes() {
   mostrarLoading(true);
 
   try {
-    let cotacoes = await buscarCotacaoYahoo(tickers);
+    // Brapi como fonte primária (Yahoo bloqueado por CORS no browser)
+    let cotacoes = await buscarCotacaoBrapi(tickers);
 
-    // Fallback Brapi para os que não vieram do Yahoo
+    // Fallback Yahoo para os que não vieram do Brapi
     const faltantes = tickers.filter(t => !cotacoes[t]);
     if (faltantes.length) {
-      const brapi = await buscarCotacaoBrapi(faltantes.length ? faltantes : tickers);
-      Object.assign(cotacoes, brapi);
-    }
-
-    // Segunda tentativa: Brapi para todos se Yahoo retornou poucos
-    if (Object.keys(cotacoes).length < tickers.length * 0.5) {
-      const brapi2 = await buscarCotacaoBrapi(tickers);
-      // Brapi tem precedência quando Yahoo falhou
-      Object.keys(brapi2).forEach(t => { if (!cotacoes[t]) cotacoes[t] = brapi2[t]; });
+      const yahoo = await buscarCotacaoYahoo(faltantes);
+      Object.assign(cotacoes, yahoo);
     }
 
     estado.cotacoes = cotacoes;
