@@ -31,6 +31,7 @@ const PALETA = [
 const estado = {
   posicoes: {},   // { TICKER: { qt, custoTotal, pm, tipo, proventos, fluxos } }
   historico: [],  // [{ data: Date, capitalInvestido: number }]
+  cotacoes: {},
   charts: {},
   carregado: false,
 };
@@ -146,11 +147,15 @@ async function lerXLSX() {
   return rows;
 }
 
+function semAcento(str) {
+  return String(str).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+
 // Detecta índice de cada coluna pelo cabeçalho
 function detectarColunas(cabecalho) {
   const c = {};
   cabecalho.forEach((col, i) => {
-    const s = String(col).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    const s = semAcento(col);
     if (s.includes('entrada') || s.includes('saida'))    c.entradaSaida = i;
     else if (s === 'data' || s.startsWith('data '))      c.data         = i;
     else if (s.includes('movimentac'))                    c.tipo         = i;
@@ -187,7 +192,7 @@ function processarMovimentacoes(rows) {
 
     const entSai = String(row[c.entradaSaida] ?? '').trim().toLowerCase();
     const rawTipo = String(row[c.tipo] ?? '').trim();
-    const tipo    = rawTipo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const tipo    = semAcento(rawTipo);
     const produto = String(row[c.produto] ?? '').trim();
     const ticker  = extrairTicker(produto);
     if (!ticker) continue;
@@ -198,7 +203,7 @@ function processarMovimentacoes(rows) {
     const valorOp    = parsearNumero(row[c.valorOp]);
 
     // Ignorar movimentações sem relevância
-    const ignorar = TIPO_IGNORAR.some(t => tipo.includes(t.normalize('NFD').replace(/[̀-ͯ]/g, '')));
+    const ignorar = TIPO_IGNORAR.some(t => tipo.includes(semAcento(t)));
     if (ignorar && tipo !== TIPO_COMPRA_VENDA) continue;
 
     if (!posicoes[ticker]) {
