@@ -14,11 +14,18 @@ const TIPOS_TICKER = {
   AAPL34: 'BDR',  M1TA34: 'BDR',  XPBR31: 'BDR',
 };
 
+// Fix #6: tickers renomeados — mapeia ticker antigo para o atual
+const TICKER_ALIAS = {
+  FBOK34: 'M1TA34',  // Facebook → Meta
+};
+
+// Tickers a ignorar completamente (posição encerrada fora do período do extrato)
+const TICKERS_EXCLUIR = ['AMZO34'];
+
 // Tipos de movimentação a processar
 const TIPO_COMPRA_VENDA  = 'transferência - liquidação';
-const TIPO_DIVIDENDO     = ['dividendo', 'juros sobre capital próprio', 'rendimento'];
-const TIPO_BONIFICACAO   = 'bonificação em ativos';
-const TIPO_DESDOBRO      = 'desdobro';
+// Fix #2: normalizar com semAcento para garantir match sem acento
+const TIPO_DIVIDENDO     = ['dividendo', 'juros sobre capital proprio', 'rendimento'];
 const TIPO_IGNORAR       = ['transferência', 'atualização', 'leilão de fração'];
 
 // Paleta de cores para gráficos
@@ -118,11 +125,13 @@ function parsearData(valor) {
 }
 
 // Extrai ticker do nome do produto (ex: "IMAB11 - ISHARES..." → "IMAB11")
+// Fix #6: aplica alias para tickers renomeados
 function extrairTicker(produto) {
   if (!produto) return null;
   const s = String(produto).trim().toUpperCase();
   const m = s.match(/^([A-Z]{4}\d{1,2}[A-Z]?\d?)/);
-  return m ? m[1] : s.split(/[\s-]/)[0] || null;
+  const tk = m ? m[1] : s.split(/[\s-]/)[0] || null;
+  return tk ? (TICKER_ALIAS[tk] || tk) : null;
 }
 
 // Normaliza número que pode vir como string "1.234,56" ou "1234.56"
@@ -182,7 +191,7 @@ function processarMovimentacoes(rows) {
   const cab = rows[idxCab];
   const c   = detectarColunas(cab);
 
-  // Debug: primeiras 5 linhas de dados
+  // Debug: primeiras 5 linhas de dados (antes da ordenação)
   console.log('[DEBUG] Cabeçalho detectado (linha', idxCab, '):', cab);
   console.log('[DEBUG] Índices de colunas:', c);
   const linhasDebug = rows.slice(idxCab + 1, idxCab + 6).filter(r => r && !r.every(v => String(v).trim() === ''));
@@ -191,20 +200,26 @@ function processarMovimentacoes(rows) {
     console.log(`[DEBUG] Linha ${i + 1} parsed → qt=${parsearNumero(row[c.quantidade])} preco=${parsearNumero(row[c.precoUnit])} tipo="${semAcento(String(row[c.tipo] ?? ''))}" entSai="${String(row[c.entradaSaida] ?? '').trim().toLowerCase()}"`);
   });
 
-  const posicoes = {};
-  const fluxosGlobais = [];  // para XIRR global
-  const historicoMap  = {};  // "yyyy-MM" → capitalInvestido acumulado
+  // Fix #1: o xlsx vem em ordem decrescente (mais recente primeiro).
+  // Ordenar as linhas de dados em ordem cronológica crescente antes de processar.
+  const dadosRows = rows.slice(idxCab + 1)
+    .filter(r => r && !r.every(v => String(v).trim() === ''))
+    .sort((a, b) => {
+      const da = parsearData(a[c.data]);
+      const db = parsearData(b[c.data]);
+      return (da || 0) - (db || 0);
+    });
 
-  for (let i = idxCab + 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || row.every(v => String(v).trim() === '')) continue;
+  const posicoes    = {};
+  const historicoMap = {};  // "yyyy-MM" → capitalInvestido acumulado
 
-    const entSai = String(row[c.entradaSaida] ?? '').trim().toLowerCase();
+  for (const row of dadosRows) {
+    const entSai  = String(row[c.entradaSaida] ?? '').trim().toLowerCase();
     const rawTipo = String(row[c.tipo] ?? '').trim();
     const tipo    = semAcento(rawTipo);
     const produto = String(row[c.produto] ?? '').trim();
     const ticker  = extrairTicker(produto);
-    if (!ticker) continue;
+    if (!ticker || TICKERS_EXCLUIR.includes(ticker)) continue;
 
     const data      = parsearData(row[c.data]);
     const quantidade = parsearNumero(row[c.quantidade]);
@@ -227,55 +242,67 @@ function processarMovimentacoes(rows) {
     }
 
     const pos = posicoes[ticker];
+    const isCredito = entSai === 'credito' || entSai === 'entrada';
+    const isDebito  = entSai === 'debito'  || entSai === 'saida';
 
-    // COMPRA / VENDA
-    if (tipo.includes('transferencia') && tipo.includes('liquidacao')) {
-      const isEntrada = entSai === 'credito' || entSai === 'entrada';
-      const isDebito  = entSai === 'debito'  || entSai === 'saida';
+    // COMPRA via "Transferência - Liquidação" (crédito) ou tipo direto "Compra"
+    const isCompra = (tipo === semAcento(TIPO_COMPRA_VENDA) && isCredito && quantidade > 0)
+                  || (tipo === 'compra' && quantidade > 0);
+    // VENDA via "Transferência - Liquidação" (débito) ou tipo direto "Venda"
+    const isVenda  = (tipo === semAcento(TIPO_COMPRA_VENDA) && isDebito  && quantidade > 0)
+                  || (tipo === 'venda' && quantidade > 0);
 
-      if (isEntrada && quantidade > 0) {
-        // Compra: atualiza custo médio ponderado
-        const novoCusto = pos.custoTotal + (precoUnit > 0 ? precoUnit * quantidade : valorOp);
-        pos.qt          += quantidade;
-        pos.custoTotal  = novoCusto;
-        pos.pm          = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
-        const saida     = -(precoUnit > 0 ? precoUnit * quantidade : valorOp);
-        if (data) pos.fluxos.push({ valor: saida, data });
-
-        // Histórico de capital
-        if (data) {
-          const chave = `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}`;
-          historicoMap[chave] = (historicoMap[chave] || 0) + Math.abs(saida);
-        }
-      } else if (isDebito && quantidade > 0) {
-        // Venda: baixa custo proporcionalmente
-        const custoVendido = pos.pm * quantidade;
-        pos.qt         -= quantidade;
-        pos.custoTotal -= custoVendido;
-        if (pos.qt <= 0) { pos.qt = 0; pos.custoTotal = 0; }
-        pos.pm = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
-        const entrada = precoUnit > 0 ? precoUnit * quantidade : valorOp;
-        if (data) pos.fluxos.push({ valor: entrada, data });
+    if (isCompra) {
+      const custo = precoUnit > 0 ? precoUnit * quantidade : valorOp;
+      pos.qt         += quantidade;
+      pos.custoTotal += custo;
+      pos.pm          = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
+      const saida = -custo;
+      if (data) pos.fluxos.push({ valor: saida, data });
+      if (data) {
+        const chave = `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}`;
+        historicoMap[chave] = (historicoMap[chave] || 0) + custo;
       }
-    }
 
-    // PROVENTOS
-    else if (TIPO_DIVIDENDO.some(t => tipo.includes(t))) {
+    } else if (isVenda) {
+      const custoVendido = pos.pm * quantidade;
+      pos.qt         -= quantidade;
+      pos.custoTotal -= custoVendido;
+      if (pos.qt <= 0) { pos.qt = 0; pos.custoTotal = 0; }
+      pos.pm = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
+      const entrada = precoUnit > 0 ? precoUnit * quantidade : valorOp;
+      if (data) pos.fluxos.push({ valor: entrada, data });
+
+    // PROVENTOS — Fix #2: TIPO_DIVIDENDO já normalizado (sem acento)
+    } else if (TIPO_DIVIDENDO.some(t => tipo.includes(t))) {
       const valor = valorOp > 0 ? valorOp : quantidade * precoUnit;
       pos.proventos += valor;
       if (data && valor > 0) pos.fluxos.push({ valor, data });
-    }
 
     // BONIFICAÇÃO — entrada sem custo
-    else if (tipo.includes('bonificac')) {
+    } else if (tipo.includes('bonificac')) {
       pos.qt += quantidade;
-      // custo médio ajustado: custo total não muda, qt aumenta
-      pos.pm = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
-    }
+      pos.pm  = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
 
-    // DESDOBRO — ajuste de quantidade
-    else if (tipo.includes('desdobro')) {
+    // DESDOBRO — adiciona cotas sem custo
+    } else if (tipo.includes('desdobro')) {
       pos.qt += quantidade;
+      pos.pm  = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
+
+    // Fix #4: GRUPAMENTO — o crédito representa o novo total (não é adição)
+    } else if (tipo.includes('grupamento') && isCredito) {
+      pos.qt        = quantidade;
+      pos.pm        = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
+
+    // Fix #5: INCORPORAÇÃO — entrada de cotas sem custo adicional (como bonificação)
+    } else if (tipo.includes('incorporac')) {
+      pos.qt += quantidade;
+      pos.pm  = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
+
+    // Fix #3: FRAÇÃO EM ATIVOS débito — remove fração residual de bonificação/desdobro
+    } else if (tipo.includes('fracao em ativos') && isDebito && quantidade > 0) {
+      pos.qt -= quantidade;
+      if (pos.qt < 0) pos.qt = 0;
       pos.pm  = pos.qt > 0 ? pos.custoTotal / pos.qt : 0;
     }
   }
