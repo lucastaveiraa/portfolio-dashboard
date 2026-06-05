@@ -344,14 +344,11 @@ const BRAPI_TOKEN = '7Kr8p6ZVSuUj7zmvSm2Z7a';
 
 async function buscarCotacaoBrapi(tickers) {
   const resultados = {};
-  const chunks = [];
-  for (let i = 0; i < tickers.length; i += 10) chunks.push(tickers.slice(i, i + 10));
-
-  for (const chunk of chunks) {
+  // Plano free da Brapi limita a 1 ticker por requisição
+  for (const tk of tickers) {
     try {
-      const lista = chunk.join(',');
-      const url   = `https://brapi.dev/api/quote/${lista}?fundamental=false&token=${BRAPI_TOKEN}`;
-      const resp  = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      const url  = `https://brapi.dev/api/quote/${tk}?fundamental=false&token=${BRAPI_TOKEN}`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (!resp.ok) continue;
       const json = await resp.json();
       for (const q of (json.results ?? [])) {
